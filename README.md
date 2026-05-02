@@ -25,11 +25,10 @@ Since this is a fully static project, there is no build step, backend setup, or 
 
 1. Clone the repository:
    ```bash
-   git clone [https://github.com/Mertcangndn/tier-list-maker.git](https://github.com/Mertcangndn/tier-list-maker.git)
+   git clone https://github.com/Mertcangndn/tier-list-maker.git
    ```
-   Open index.html in any modern web browser.
-
-Start ranking your favorite things!
+2. Open index.html in any modern web browser.
+3. Start ranking your favorite things!
 
 # 🌐 Deployment
 This project is optimized for instant deployment. You can easily host it for free using:
@@ -37,6 +36,6 @@ This project is optimized for instant deployment. You can easily host it for fre
 - Netlify
 - GitHub Pages
 Just link this repository to your preferred hosting platform, and it will deploy the `index.html` automatically as a static site.
-
+---
 📜 License
 Distributed under the MIT License. See LICENSE for more information.
