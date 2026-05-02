@@ -1,0 +1,712 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tier List Maker</title>
+    <!-- SortableJS: Sürükle bırak ve kaydırma mekaniği için -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script>
+    <!-- html2canvas: Tabloyu resim olarak indirmek için -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <style>
+        :root {
+            --bg-color: #121212;
+            --container-bg: #1e1e1e;
+            --text-color: #ffffff;
+            --border-color: #333333;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        /* Dil Değiştirme Düğmeleri (Sağ Üst) */
+        .lang-switch-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            display: flex;
+            gap: 5px;
+            z-index: 1000;
+        }
+
+        .lang-btn {
+            background-color: #3a3a3a;
+            color: #888;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+            transition: all 0.2s;
+        }
+
+        .lang-btn:hover { background-color: #555; color: white; }
+        .lang-btn.active { background-color: #2b78e4; color: white; border: 1px solid white;}
+
+        h1 { 
+            margin-bottom: 5px; /* Başlık ile çizgi arası daraltıldı */
+            margin-top: 20px; 
+        }
+
+        /* Düz ve Sade Ayırıcı Çizgi */
+        .header-divider {
+            width: 100%;
+            max-width: 350px;
+            height: 1px;
+            background-color: #333333; /* Efekt yerine düz ve uyumlu renk */
+            margin-bottom: 8px; /* Çizgi ile linkler arası daraltıldı */
+        }
+
+        /* Sosyal Medya Linkleri */
+        .social-links {
+            margin-bottom: 40px; 
+            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            font-weight: 200; 
+            font-size: 12px; /* Yazılar daha da küçültüldü */
+            letter-spacing: 1.5px; 
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .social-links a {
+            color: #aaaaaa;
+            text-decoration: none;
+            transition: color 0.3s ease;
+        }
+
+        .social-links a:hover {
+            color: #ffffff;
+        }
+
+        .social-links .cdot {
+            color: #555555;
+            font-weight: 300;
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        button, .file-upload-label {
+            background-color: #3a3a3a;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background 0.2s;
+        }
+
+        button:hover, .file-upload-label:hover { background-color: #555; }
+        
+        input[type="file"] { display: none; }
+
+        /* Tier List Ana Konteyneri */
+        #tier-list-container {
+            width: 100%;
+            max-width: 1000px;
+            background-color: var(--bg-color);
+            border: 2px solid var(--border-color);
+            border-radius: 5px;
+            overflow: hidden;
+            margin-bottom: 30px;
+        }
+
+        .tier-row {
+            display: flex;
+            min-height: 100px;
+            border-bottom: 2px solid var(--border-color);
+            background-color: var(--container-bg);
+        }
+
+        .tier-row:last-child { border-bottom: none; }
+
+        /* Dikey Sürükleme Tutma Kolu (Sol Kısım) */
+        .tier-drag-handle {
+            width: 24px;
+            min-width: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: rgba(0, 0, 0, 0.2);
+            color: #666;
+            cursor: grab;
+            font-size: 16px;
+            font-weight: bold;
+            border-right: 1px solid var(--border-color);
+            transition: color 0.2s, background-color 0.2s;
+        }
+
+        .tier-drag-handle:hover {
+            color: #fff;
+            background-color: rgba(0, 0, 0, 0.4);
+        }
+
+        .tier-drag-handle:active {
+            cursor: grabbing;
+        }
+
+        .tier-label-container {
+            width: 120px;
+            min-width: 120px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            border-right: 2px solid var(--border-color);
+        }
+
+        .tier-label {
+            color: #000;
+            font-weight: bold;
+            font-size: 18px;
+            text-align: center;
+            width: 100%;
+            padding: 10px;
+            outline: none;
+            word-wrap: break-word;
+            cursor: text;
+        }
+
+        .tier-settings {
+            position: absolute;
+            bottom: 5px;
+            right: 5px;
+            display: flex;
+            gap: 5px;
+            opacity: 0.2;
+            transition: opacity 0.2s;
+        }
+
+        .tier-label-container:hover .tier-settings { opacity: 1; }
+
+        /* Yeni Renk Seçici Simge Alanı */
+        .color-picker-container {
+            position: relative;
+            width: 24px;
+            height: 24px;
+            border-radius: 5px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .color-palette-icon {
+            font-size: 16px;
+            pointer-events: none;
+        }
+
+        .color-picker-input {
+            width: 100%;
+            height: 100%;
+            padding: 0;
+            border: none;
+            cursor: pointer;
+            opacity: 0;
+            position: absolute;
+            top: 0; left: 0;
+            z-index: 2;
+        }
+        
+        .delete-tier-btn {
+            background: rgba(0,0,0,0.5);
+            color: white;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 12px;
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0;
+            z-index: 3;
+        }
+        .delete-tier-btn:hover { background: rgba(255, 0, 0, 0.8); }
+
+        /* Sürükle Bırak Alanları (Resimler) */
+        .tier-dropzone {
+            flex-grow: 1;
+            display: flex;
+            flex-wrap: wrap;
+            align-content: flex-start;
+            padding: 5px;
+            gap: 5px;
+        }
+
+        /* Resim Havuzu */
+        .image-pool-wrapper {
+            width: 100%;
+            max-width: 1000px;
+            margin-bottom: 50px;
+        }
+
+        #image-pool {
+            min-height: 150px;
+            background-color: var(--container-bg);
+            border: 2px dashed #555;
+            border-radius: 5px;
+            padding: 10px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+            align-content: flex-start;
+        }
+
+        /* Resim Öğeleri */
+        .item-container {
+            width: 90px;
+            height: 90px;
+            position: relative;
+            cursor: grab;
+        }
+
+        .item-container:active { cursor: grabbing; }
+
+        .tier-image {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 4px;
+            user-select: none;
+        }
+
+        .delete-img-btn {
+            position: absolute;
+            top: 2px;
+            right: 2px;
+            background: rgba(255, 0, 0, 0.8);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            font-size: 12px;
+            cursor: pointer;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 0;
+        }
+
+        .item-container:hover .delete-img-btn { display: flex; }
+
+        .sortable-ghost { opacity: 0.4; border: 2px dashed #888; }
+        .tier-row.sortable-ghost { border: 2px dashed #888; border-bottom: none;}
+
+    </style>
+</head>
+<body>
+
+    <!-- Dil Değiştirme Düğmeleri -->
+    <div class="lang-switch-container">
+        <button id="lang-tr" class="lang-btn" onclick="switchLanguage('tr')">TR</button>
+        <button id="lang-en" class="lang-btn" onclick="switchLanguage('en')">EN</button>
+    </div>
+
+    <h1 id="main-title">Tier List Maker</h1>
+    
+    <!-- İnce ve Sade Ayırıcı Çizgi -->
+    <div class="header-divider"></div>
+
+    <!-- Sosyal Medya Linkleri -->
+    <div class="social-links">
+        <a href="https://www.instagram.com/mertcangndn/" target="_blank">Instagram</a>
+        <span class="cdot">&middot;</span>
+        <a href="https://www.linkedin.com/in/mertcan-gundogan/" target="_blank">LinkedIn</a>
+        <span class="cdot">&middot;</span>
+        <a href="https://github.com/Mertcangndn" target="_blank">GitHub</a>
+    </div>
+
+    <div class="controls">
+        <label id="upload-images-label" class="file-upload-label">
+            Upload Images
+            <input type="file" id="image-upload" multiple accept="image/png, image/jpeg, image/jpg, image/webp">
+        </label>
+        <button id="add-tier-btn" onclick="addTierRow()" style="background-color: #dfab00;">Add New Tier</button>
+        <button id="export-image-btn" onclick="exportAsImage()" style="background-color: #2b78e4;">Export as Image</button>
+        <button id="save-project-btn" onclick="saveProject()" style="background-color: #218c74;">Save Project (Download)</button>
+        <label id="load-project-label" class="file-upload-label" style="background-color: #b33939;">
+            Load Project
+            <input type="file" id="project-upload" accept=".json">
+        </label>
+        <button id="clear-layout-btn" onclick="clearLayout()" style="background-color: #8e44ad;">Clear Layout</button>
+    </div>
+
+    <!-- Tier List Tablosu -->
+    <div id="tier-list-container">
+        <!-- JS ile doldurulacak -->
+    </div>
+
+    <!-- Eklenen Resimlerin Havuzu -->
+    <div class="image-pool-wrapper">
+        <h3 id="image-pool-title" style="margin-bottom: 10px;">Image Pool (Drag & Drop)</h3>
+        <div id="image-pool" class="tier-dropzone"></div>
+    </div>
+
+    <script>
+        const translations = {
+            tr: {
+                title: "Tier List Maker",
+                uploadImages: "Resimleri Seç",
+                addTier: "Yeni Tier Ekle",
+                exportImage: "Resim Olarak İndir",
+                saveProject: "Projeyi Kaydet (İndir)",
+                loadProject: "Projeyi Yükle",
+                clearLayout: "Ekranı Temizle",
+                imagePoolTitle: "Resim Havuzu (Sürükle & Bırak)",
+                defaultTiers: [
+                    { name: 'S', color: '#ff7f7f' },
+                    { name: 'A', color: '#ffbf7f' },
+                    { name: 'B', color: '#ffff7f' },
+                    { name: 'C', color: '#7fff7f' },
+                    { name: 'D', color: '#7fbfff' }
+                ],
+                confirmClear: "Proje yüklendi. Mevcut tier'ler silinecek. Devam edilsin mi?",
+                confirmClearLayout: "Tüm tabloyu ve resimleri temizlemek istediğine emin misin? Bu işlem geri alınamaz.",
+                loadError: "Proje dosyası okunamadı veya hatalı format.",
+                newTierName: "YENİ",
+                moveTierTooltip: "Tier'i Sürükle",
+                deleteTierTooltip: "Tier'i Sil",
+                colorPickerTooltip: "Renk Değiştir (🎨)",
+                deleteImageTooltip: "Resmi Sil"
+            },
+            en: {
+                title: "Tier List Maker",
+                uploadImages: "Upload Images",
+                addTier: "Add New Tier",
+                exportImage: "Export as Image",
+                saveProject: "Save Project (Download)",
+                loadProject: "Load Project",
+                clearLayout: "Clear Layout",
+                imagePoolTitle: "Image Pool (Drag & Drop)",
+                defaultTiers: [
+                    { name: 'S', color: '#ff7f7f' },
+                    { name: 'A', color: '#ffbf7f' },
+                    { name: 'B', color: '#ffff7f' },
+                    { name: 'C', color: '#7fff7f' },
+                    { name: 'D', color: '#7fbfff' }
+                ],
+                confirmClear: "Project loaded. Current tiers will be cleared. Continue?",
+                confirmClearLayout: "Are you sure you want to clear the entire layout and all images? This cannot be undone.",
+                loadError: "Project file could not be read or is invalid.",
+                newTierName: "NEW",
+                moveTierTooltip: "Drag Tier",
+                deleteTierTooltip: "Delete Tier",
+                colorPickerTooltip: "Change Color (🎨)",
+                deleteImageTooltip: "Delete Image"
+            }
+        };
+
+        const tierContainer = document.getElementById('tier-list-container');
+        const imagePool = document.getElementById('image-pool');
+        let sortableInstances = [];
+        let currentLang = 'en'; 
+
+        function switchLanguage(lang) {
+            currentLang = lang;
+            const t = translations[lang];
+
+            document.getElementById('main-title').innerText = t.title;
+            const uploadLabel = document.getElementById('upload-images-label');
+            if (uploadLabel.childNodes[0]) uploadLabel.childNodes[0].nodeValue = t.uploadImages + ' ';
+            const loadLabel = document.getElementById('load-project-label');
+            if (loadLabel.childNodes[0]) loadLabel.childNodes[0].nodeValue = t.loadProject + ' ';
+            
+            document.getElementById('add-tier-btn').innerText = t.addTier;
+            document.getElementById('export-image-btn').innerText = t.exportImage;
+            document.getElementById('save-project-btn').innerText = t.saveProject;
+            document.getElementById('clear-layout-btn').innerText = t.clearLayout;
+            document.getElementById('image-pool-title').innerText = t.imagePoolTitle;
+
+            document.getElementById('lang-tr').classList.toggle('active', lang === 'tr');
+            document.getElementById('lang-en').classList.toggle('active', lang === 'en');
+            
+            document.querySelectorAll('.tier-drag-handle').forEach(el => el.title = t.moveTierTooltip);
+            document.querySelectorAll('.color-picker-container').forEach(el => el.title = t.colorPickerTooltip);
+            document.querySelectorAll('.delete-tier-btn').forEach(el => el.title = t.deleteTierTooltip);
+            document.querySelectorAll('.delete-img-btn').forEach(el => el.title = t.deleteImageTooltip);
+        }
+
+        function init() {
+            switchLanguage(currentLang);
+            translations[currentLang].defaultTiers.forEach(tier => createTierRow(tier.name, tier.color));
+            makeSortable(imagePool, 'shared');
+            makeTiersSortable(tierContainer);
+        }
+
+        function clearLayout() {
+            if (confirm(translations[currentLang].confirmClearLayout)) {
+                tierContainer.innerHTML = '';
+                imagePool.innerHTML = '';
+                
+                sortableInstances.forEach(instance => instance.destroy());
+                sortableInstances = [];
+                
+                makeSortable(imagePool, 'shared');
+                makeTiersSortable(tierContainer);
+
+                translations[currentLang].defaultTiers.forEach(tier => createTierRow(tier.name, tier.color));
+            }
+        }
+
+        function createTierRow(name, color) {
+            const t = translations[currentLang];
+            const row = document.createElement('div');
+            row.className = 'tier-row';
+            
+            const dragHandle = document.createElement('div');
+            dragHandle.className = 'tier-drag-handle';
+            dragHandle.innerHTML = '⋮⋮';
+            dragHandle.title = t.moveTierTooltip;
+
+            const labelContainer = document.createElement('div');
+            labelContainer.className = 'tier-label-container';
+            labelContainer.style.backgroundColor = color;
+
+            const label = document.createElement('div');
+            label.className = 'tier-label';
+            label.contentEditable = true;
+            label.innerText = name;
+            label.spellcheck = false;
+
+            const settings = document.createElement('div');
+            settings.className = 'tier-settings';
+
+            const colorPickerContainer = document.createElement('label');
+            colorPickerContainer.className = 'color-picker-container';
+            colorPickerContainer.title = t.colorPickerTooltip;
+
+            const colorPaletteIcon = document.createElement('span');
+            colorPaletteIcon.className = 'color-palette-icon';
+            colorPaletteIcon.innerHTML = '🎨';
+
+            const colorPicker = document.createElement('input');
+            colorPicker.type = 'color';
+            colorPicker.className = 'color-picker-input';
+            colorPicker.value = rgbToHex(color);
+            colorPicker.addEventListener('input', (e) => {
+                labelContainer.style.backgroundColor = e.target.value;
+            });
+
+            colorPickerContainer.appendChild(colorPaletteIcon);
+            colorPickerContainer.appendChild(colorPicker);
+
+            const deleteBtn = document.createElement('button');
+            deleteBtn.className = 'delete-tier-btn';
+            deleteBtn.innerHTML = 'X';
+            deleteBtn.title = t.deleteTierTooltip;
+            deleteBtn.onclick = (e) => {
+                e.stopPropagation(); 
+                const dropzone = row.querySelector('.tier-dropzone');
+                while(dropzone.firstChild) {
+                    imagePool.appendChild(dropzone.firstChild);
+                }
+                row.remove();
+            };
+
+            settings.appendChild(colorPickerContainer);
+            settings.appendChild(deleteBtn);
+            labelContainer.appendChild(label);
+            labelContainer.appendChild(settings);
+
+            const dropzone = document.createElement('div');
+            dropzone.className = 'tier-dropzone';
+
+            row.appendChild(dragHandle); 
+            row.appendChild(labelContainer);
+            row.appendChild(dropzone);
+            tierContainer.appendChild(row);
+
+            makeSortable(dropzone, 'shared');
+        }
+
+        function addTierRow() {
+            createTierRow(translations[currentLang].newTierName, '#ffffff');
+        }
+
+        function makeSortable(element, groupName) {
+            const instance = new Sortable(element, {
+                group: groupName,
+                animation: 150,
+                ghostClass: 'sortable-ghost',
+                filter: '.delete-img-btn',
+                onFilter: function (evt) {
+                    const item = evt.item;
+                    const ctrl = evt.target;
+                    if (Sortable.utils.is(ctrl, ".delete-img-btn")) {
+                        item.parentNode.removeChild(item);
+                    }
+                }
+            });
+            sortableInstances.push(instance);
+        }
+
+        function makeTiersSortable(element) {
+            new Sortable(element, {
+                group: 'tiers',
+                animation: 150,
+                handle: '.tier-drag-handle',
+                ghostClass: 'sortable-ghost'
+            });
+        }
+
+        document.getElementById('image-upload').addEventListener('change', function(e) {
+            const files = e.target.files;
+            if (!files.length) return;
+
+            Array.from(files).forEach(file => {
+                if (!file.type.startsWith('image/')) return;
+
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    createImageItem(event.target.result, imagePool);
+                };
+                reader.readAsDataURL(file);
+            });
+            
+            this.value = '';
+        });
+
+        function createImageItem(src, container) {
+            const item = document.createElement('div');
+            item.className = 'item-container';
+
+            const img = document.createElement('img');
+            img.src = src;
+            img.className = 'tier-image';
+
+            const delBtn = document.createElement('button');
+            delBtn.className = 'delete-img-btn';
+            delBtn.innerHTML = 'X';
+            delBtn.title = translations[currentLang].deleteImageTooltip;
+
+            item.appendChild(img);
+            item.appendChild(delBtn);
+            container.appendChild(item);
+        }
+
+        function exportAsImage() {
+            const settingsElements = document.querySelectorAll('.tier-settings');
+            const dragHandles = document.querySelectorAll('.tier-drag-handle');
+            
+            settingsElements.forEach(el => el.style.display = 'none');
+            dragHandles.forEach(el => el.style.display = 'none');
+
+            html2canvas(tierContainer, {
+                backgroundColor: '#121212',
+                scale: 2
+            }).then(canvas => {
+                settingsElements.forEach(el => el.style.display = 'flex');
+                dragHandles.forEach(el => el.style.display = 'flex');
+                
+                const link = document.createElement('a');
+                link.download = 'tier-list.png';
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+            });
+        }
+
+        function saveProject() {
+            const data = {
+                language: currentLang,
+                tiers: [],
+                pool: []
+            };
+
+            document.querySelectorAll('.tier-row').forEach(row => {
+                const label = row.querySelector('.tier-label').innerText;
+                const color = row.querySelector('.tier-label-container').style.backgroundColor;
+                const images = [];
+                row.querySelectorAll('.tier-image').forEach(img => images.push(img.src));
+                
+                data.tiers.push({ label, color, images });
+            });
+
+            document.querySelectorAll('#image-pool .tier-image').forEach(img => {
+                data.pool.push(img.src);
+            });
+
+            const blob = new Blob([JSON.stringify(data)], { type: 'application/json' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = 'tier-list-project.json';
+            link.click();
+        }
+
+        document.getElementById('project-upload').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                try {
+                    const data = JSON.parse(event.target.result);
+                    
+                    if (confirm(translations[currentLang].confirmClear)) {
+                        tierContainer.innerHTML = '';
+                        imagePool.innerHTML = '';
+                        sortableInstances.forEach(instance => instance.destroy());
+                        sortableInstances = [];
+                        
+                        if (data.language && translations[data.language]) {
+                            switchLanguage(data.language);
+                        } else {
+                            switchLanguage(currentLang);
+                        }
+                        
+                        makeSortable(imagePool, 'shared');
+                        makeTiersSortable(tierContainer);
+
+                        data.tiers.forEach(tier => {
+                            createTierRow(tier.label, tier.color);
+                            const newRowDropzone = tierContainer.lastChild.querySelector('.tier-dropzone');
+                            tier.images.forEach(src => createImageItem(src, newRowDropzone));
+                        });
+
+                        data.pool.forEach(src => createImageItem(src, imagePool));
+                    }
+
+                } catch (error) {
+                    alert(translations[currentLang].loadError);
+                }
+            };
+            reader.readAsText(file);
+            this.value = '';
+        });
+
+        function rgbToHex(rgb) {
+            if (rgb.startsWith('#')) return rgb;
+            let a = rgb.split("(")[1].split(")")[0];
+            a = a.split(",");
+            let b = a.map(function(x){             
+                x = parseInt(x).toString(16);
+                return (x.length==1) ? "0"+x : x;
+            });
+            return "#" + b.join("");
+        }
+
+        init();
+    </script>
+</body>
+</html>
