@@ -39,3 +39,5 @@ Just link this repository to your preferred hosting platform, and it will deploy
 ---
 📜 License
 Distributed under the MIT License. See LICENSE for more information.
+---
+Special thanks to [Emirhan Ayaz](https://github.com/reallot) for his help.
